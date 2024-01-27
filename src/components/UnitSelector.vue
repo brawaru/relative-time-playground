@@ -1,14 +1,5 @@
 <script setup lang="ts">
-const units = {
-  year: 'Year',
-  quarter: 'Quarter',
-  month: 'Month',
-  week: 'Week',
-  day: 'Day',
-  hour: 'Hour',
-  minute: 'Minute',
-  second: 'Second',
-};
+import { units } from '../shared/units.ts';
 const unitModel = defineModel({ type: String });
 </script>
 <template>

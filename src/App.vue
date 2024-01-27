@@ -1,25 +1,29 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, unref, watch } from 'vue';
-import LanguageSelector from './components/LanguageSelector.vue';
-import UnitSelector from './components/UnitSelector.vue';
+import { isUnit } from './shared/units.ts'
+import { ref, computed, onMounted, onUnmounted, unref, watch } from "vue";
+import LanguageSelector from "./components/LanguageSelector.vue";
+import UnitSelector from "./components/UnitSelector.vue";
 
-const locale = ref('en-us');
+const locale = ref("en-us");
 const value = ref(0);
-const unit = ref('day');
+const unit = ref<Intl.RelativeTimeFormatUnit>("day");
 
 const formatter = computed(() => new Intl.RelativeTimeFormat(locale.value));
 const example = computed(() => formatter.value.format(value.value, unit.value));
 
 function onLocationChange() {
   const url = new URL(location.href);
-  if (url.searchParams.has('locale')) {
-    locale.value = url.searchParams.get('locale');
+  if (url.searchParams.has("locale")) {
+    locale.value = url.searchParams.get("locale")!;
   }
-  if (url.searchParams.has('unit')) {
-    unit.value = url.searchParams.get('unit');
+  if (url.searchParams.has("unit")) {
+    const v = url.searchParams.get("unit")
+    if (isUnit(v)) {
+      unit.value = v
+    }
   }
-  if (url.searchParams.has('value')) {
-    const v = Number.parseFloat(url.searchParams.get('value'));
+  if (url.searchParams.has("value")) {
+    const v = Number.parseFloat(url.searchParams.get("value")!);
     if (!Number.isNaN(v)) {
       value.value = v;
     }
@@ -28,16 +32,16 @@ function onLocationChange() {
 
 const searchParams = computed(() => {
   const s = new URLSearchParams();
-  s.set('locale', unref(locale));
-  s.set('value', unref(value));
-  s.set('unit', unref(unit));
+  s.set("locale", unref(locale));
+  s.set("value", String(unref(value)));
+  s.set("unit", unref(unit));
   return String(s);
 });
 
 watch(searchParams, (sp) => {
   const url = new URL(location.href);
   url.search = sp;
-  history.replaceState({}, '', url.toString());
+  history.replaceState({}, "", url.toString());
 });
 
 function onStatePop() {
@@ -46,11 +50,11 @@ function onStatePop() {
 
 onMounted(() => {
   onLocationChange();
-  window.addEventListener('popstate', onStatePop);
+  window.addEventListener("popstate", onStatePop);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('popstate', onStatePop);
+  window.removeEventListener("popstate", onStatePop);
 });
 </script>
 
