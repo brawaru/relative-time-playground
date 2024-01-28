@@ -5,7 +5,34 @@ import LanguageSelector from "./components/LanguageSelector.vue";
 import UnitSelector from "./components/UnitSelector.vue";
 
 const $locale = ref("en-us");
-const $value = ref(0);
+
+const $value = ref(0)
+
+function computeValue(value: number, past: boolean) {
+  const abs = Math.abs(value)
+  if (past) return abs === 0 ? -0 : abs * -1
+  return abs
+}
+
+const $past = computed({
+  get() {
+    const value = unref($value)
+    return Object.is(value, -0) || value < 0
+  },
+  set(past) {
+    $value.value = computeValue(unref($value), past)
+  },
+})
+
+const $visibleValue = computed({
+  get() {
+    return Math.abs(unref($value))
+  },
+  set(value) {
+    $value.value = computeValue(value, unref($past))
+  }
+})
+
 const $unit = ref<Intl.RelativeTimeFormatUnit>("day");
 
 const $intlLocale = computed(() => new Intl.Locale(unref($locale)));
@@ -23,10 +50,10 @@ const $isSupported = computed(() => {
   return false;
 });
 
-const $formatter = computed(() => new Intl.RelativeTimeFormat([$locale.value, 'en-US']));
+const $formatter = computed(() => new Intl.RelativeTimeFormat([unref($locale), 'en-US']));
 
 const $example = computed(() =>
-  $formatter.value.format($value.value, $unit.value)
+  unref($formatter).format(unref($value), unref($unit))
 );
 
 function onLocationChange() {
@@ -91,11 +118,15 @@ onUnmounted(() => {
     <div class="value-group">
       <label>
         Value
-        <input type="number" v-model="$value" />
+        <input type="number" min="0" v-model="$visibleValue" />
       </label>
       <label>
         Unit
         <UnitSelector v-model="$unit" />
+      </label>
+      <label>
+        <input type="checkbox" v-model="$past" />
+        In the past
       </label>
     </div>
   </div>
@@ -124,6 +155,12 @@ onUnmounted(() => {
             <th><code>intlLocale</code></th>
             <td>
               <code>{{ $intlLocale }}</code>
+            </td>
+          </tr>
+          <tr>
+            <th><code>value</code></th>
+            <td>
+              <code>{{ $value }}</code>
             </td>
           </tr>
           <tr>
