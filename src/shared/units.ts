@@ -9,6 +9,11 @@ export const units: Record<Intl.RelativeTimeFormatUnitSingular, string> = {
   second: "Second",
 };
 
-export function isUnit(value: unknown): value is Intl.RelativeTimeFormatUnitSingular {
-  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(units, value)
+export function isUnit(
+  value: unknown
+): value is Intl.RelativeTimeFormatUnitSingular {
+  return (
+    typeof value === "string" &&
+    Object.prototype.hasOwnProperty.call(units, value)
+  );
 }
