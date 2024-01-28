@@ -23,7 +23,7 @@ const $isSupported = computed(() => {
   return false;
 });
 
-const $formatter = computed(() => new Intl.RelativeTimeFormat($locale.value));
+const $formatter = computed(() => new Intl.RelativeTimeFormat([$locale.value, 'en-US']));
 
 const $example = computed(() =>
   $formatter.value.format($value.value, $unit.value)
