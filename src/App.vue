@@ -125,7 +125,7 @@ function onLinkClick(e: MouseEvent) {
   e.preventDefault();
   if (typeof navigator.share !== "undefined") {
     const shareData = {
-      title: "Intl.RelativeTimeFormat tester",
+      title: "Intl.RelativeTimeFormat playground",
       text: `Using Intl.RelativeTimeFormat API in my browser, ${unref(
         $value
       )} ${unref($unit)}(s) is evaluated to ${unref($example)}`,
