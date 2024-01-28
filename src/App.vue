@@ -3,35 +3,36 @@ import { isUnit } from "./shared/units.ts";
 import { ref, computed, onMounted, onUnmounted, unref, watch } from "vue";
 import LanguageSelector from "./components/LanguageSelector.vue";
 import UnitSelector from "./components/UnitSelector.vue";
+import { debounce } from "./shared/debounce";
 
 const $locale = ref("en-us");
 
-const $value = ref(0)
+const $value = ref(0);
 
 function computeValue(value: number, past: boolean) {
-  const abs = Math.abs(value)
-  if (past) return abs === 0 ? -0 : abs * -1
-  return abs
+  const abs = Math.abs(value);
+  if (past) return abs === 0 ? -0 : abs * -1;
+  return abs;
 }
 
 const $past = computed({
   get() {
-    const value = unref($value)
-    return Object.is(value, -0) || value < 0
+    const value = unref($value);
+    return Object.is(value, -0) || value < 0;
   },
   set(past) {
-    $value.value = computeValue(unref($value), past)
+    $value.value = computeValue(unref($value), past);
   },
-})
+});
 
 const $visibleValue = computed({
   get() {
-    return Math.abs(unref($value))
+    return Math.abs(unref($value));
   },
   set(value) {
-    $value.value = computeValue(value, unref($past))
-  }
-})
+    $value.value = computeValue(value, unref($past));
+  },
+});
 
 const $unit = ref<Intl.RelativeTimeFormatUnit>("day");
 
@@ -50,7 +51,9 @@ const $isSupported = computed(() => {
   return false;
 });
 
-const $formatter = computed(() => new Intl.RelativeTimeFormat([unref($locale), 'en-US']));
+const $formatter = computed(
+  () => new Intl.RelativeTimeFormat([unref($locale), "en-US"])
+);
 
 const $example = computed(() =>
   unref($formatter).format(unref($value), unref($unit))
@@ -75,22 +78,73 @@ function onLocationChange() {
   }
 }
 
-const $searchParams = computed(() => {
-  const s = new URLSearchParams();
-  s.set("locale", unref($locale));
-  s.set("value", String(unref($value)));
-  s.set("unit", unref($unit));
-  return String(s);
+const $url = computed(() => {
+  const url = new URL(location.href);
+  url.searchParams.set("locale", unref($locale));
+  url.searchParams.set("value", String(unref($value)));
+  url.searchParams.set("unit", unref($unit));
+  return String(url);
 });
 
-watch($searchParams, (sp) => {
-  const url = new URL(location.href);
-  url.search = sp;
-  history.replaceState({}, "", url.toString());
-});
+const $historyPushed = ref(false);
+
+watch(
+  $url,
+  (() => {
+    const debouncedPush = debounce((url: string) => {
+      history.replaceState({}, "", url.toString());
+      $historyPushed.value = true;
+    }, 500);
+
+    return function pushToHistory(url: string) {
+      $historyPushed.value = false;
+      debouncedPush(url);
+    };
+  })()
+);
 
 function onStatePop() {
   onLocationChange();
+}
+
+async function copyOrPrompt(text: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    if (typeof alert !== 'undefined') {
+      alert('Copied to clipboard')
+    }
+  } catch (err) {
+    console.error('Clipboard write failed', err)
+    if (typeof prompt !== 'undefined') {
+      prompt('Cannot copy automatically, please copy it manually', text)
+    }
+  }
+}
+
+function onLinkClick(e: MouseEvent) {
+  e.preventDefault();
+  if (typeof navigator.share !== "undefined") {
+    const shareData = {
+      title: "Intl.RelativeTimeFormat tester",
+      text: `Using Intl.RelativeTimeFormat API in my browser, ${unref(
+        $value
+      )} ${unref($unit)}(s) is evaluated to ${unref($example)}`,
+      url: unref($url),
+    } satisfies ShareData;
+    if (navigator.canShare(shareData)) {
+      navigator.share(shareData).then(
+        () => {
+          console.log("Opened share menu successfully");
+        },
+        (err) => {
+          console.error("Cannot share", err);
+          copyOrPrompt(shareData.url)
+        }
+      );
+    }
+  } else {
+    copyOrPrompt(unref($url))
+  }
 }
 
 onMounted(() => {
@@ -135,6 +189,9 @@ onUnmounted(() => {
     <div>
       {{ $example }}
     </div>
+    <div>
+      <a :href="$url" @click="onLinkClick">Permalink</a>
+    </div>
   </div>
   <div>
     <details>
@@ -176,9 +233,15 @@ onUnmounted(() => {
             </td>
           </tr>
           <tr>
-            <th><code>searchParams</code></th>
+            <th><code>url</code></th>
             <td>
-              <code>{{ $searchParams }}</code>
+              <code>{{ $url }}</code>
+            </td>
+          </tr>
+          <tr>
+            <th><code>historyPushed</code></th>
+            <td>
+              <code>{{ $historyPushed }}</code>
             </td>
           </tr>
         </table>
